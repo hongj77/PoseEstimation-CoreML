@@ -11,12 +11,19 @@ import UIKit
 class SquatDepthView: UIView {
     
     var belowKnees = false
+    var pointsHistory: Queue<[PredictedPoint?]> = Queue<[PredictedPoint?]>()
+    let maxHistoryFrames: Int = 100
+    enum PointLabels: Int {
+        case top = 0, neck, rightShoulder, rightElbow, rightWrist, leftElbow, leftWrist,
+        rightHip, rightKnee, rightAnkle, leftHip, leftKnee, leftAnkle
+    }
     
     // There's 14 of these returned from the model.
     public var bodyPoints: [PredictedPoint?] = [] {
         didSet {
             self.setNeedsDisplay()
             self.checkSquatDepth(with: bodyPoints)
+            self.checkVelocity(with: bodyPoints)
         }
     }
     
@@ -44,11 +51,7 @@ class SquatDepthView: UIView {
         
         // Check if the hips are parallel/below the knees
         if (l_hip != nil && r_hip != nil && l_knee != nil && r_knee != nil) {
-            print("l_hip!.maxPoint.y: ", l_hip!.maxPoint.y)
-            print("l_knee!.maxPoint.y: ", l_knee!.maxPoint.y)
-            print("r_hip!.maxPoint.y: ", r_hip!.maxPoint.y)
-            print("r_knee!.maxPoint.y: ", r_knee!.maxPoint.y)
-            
+
             if (l_hip!.maxPoint.y >= l_knee!.maxPoint.y
                 && r_hip!.maxPoint.y >= r_knee!.maxPoint.y) {
                 belowKnees = true
@@ -56,6 +59,75 @@ class SquatDepthView: UIView {
                 belowKnees = false
             }
         }
+    }
+    /*
+    static let pointLabels = [
+
+    ]
+ */
+    private func checkVelocity(with n_kpoints: [PredictedPoint?]) {
+        // Assumes the set starts as soon as the recording starts
+        // and ends after 100 frames have been processed
+        
+        let userHeightInMeters : CGFloat = 1.7272
+        // Approximate time between frames; TODO keep track of exact time between frames
+        let dt: CGFloat = 0.1
+        if pointsHistory.count > maxHistoryFrames {
+            var roi : [[PredictedPoint?]] = []
+            while (pointsHistory.count > 0) {
+                if let frame = pointsHistory.dequeue() {
+                    roi.append(frame)
+                }
+            }
+            // Find bottom of squat
+            var minIndex: Int = -1
+            // Minimum neck height is actually maximum in image coords
+            var minNeckPoint: CGFloat = 0
+            for frameIndex in 0..<roi.count {
+                let frame = roi[frameIndex]
+                if let newNeckPoint = frame[PointLabels.neck.rawValue] {
+                    if newNeckPoint.maxPoint.y > minNeckPoint {
+                        minNeckPoint = newNeckPoint.maxPoint.y
+                        minIndex = frameIndex
+                    }
+                }
+            }
+            // Now that we have height of the bottom of the squat, let's get the first max before the min
+            var firstMaxIndex: Int = -1
+            var firstMaxNeckPoint: CGFloat = 99999
+            if minIndex < 0 {
+                print("Error computing velocity, can't find minimum neck position")
+                return
+            }
+            for frameIndex in 0..<minIndex {
+                let frame = roi[frameIndex]
+                if let newNeckPoint = frame[PointLabels.neck.rawValue] {
+                    if newNeckPoint.maxPoint.y < firstMaxNeckPoint {
+                        firstMaxNeckPoint = newNeckPoint.maxPoint.y
+                        firstMaxIndex = frameIndex
+                    }
+                }
+            }
+            var secondMaxIndex: Int = -1
+            var secondMaxNeckPoint: CGFloat = 99999
+            for frameIndex in minIndex..<roi.count {
+                let frame = roi[frameIndex]
+                if let newNeckPoint = frame[PointLabels.neck.rawValue] {
+                    if newNeckPoint.maxPoint.y < secondMaxNeckPoint {
+                        secondMaxNeckPoint = newNeckPoint.maxPoint.y
+                        secondMaxIndex = frameIndex
+                    }
+                }
+            }
+            // TODO estimate pixel-distance height from distance between top and ankles. Assuming height is 1 for now
+            let pixelDistance: CGFloat = minNeckPoint - secondMaxNeckPoint
+            let metersDistance: CGFloat = pixelDistance * userHeightInMeters
+            let time: CGFloat = CGFloat(secondMaxIndex - minIndex) * dt
+            let velocity: CGFloat = metersDistance / time
+            print("Upwards squat velocity: \(velocity)")
+        }
+        pointsHistory.enqueue(n_kpoints)
+        print("Hello, world!")
     }
 
     override func draw(_ rect: CGRect) {
