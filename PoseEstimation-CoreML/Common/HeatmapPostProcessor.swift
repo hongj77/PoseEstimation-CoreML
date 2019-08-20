@@ -25,7 +25,9 @@ class HeatmapPostProcessor {
         var keypoint_number = total_keypoint_number
         if onlyBust { keypoint_number = min(total_keypoint_number, 8/*the index of R hip*/) }
         let heatmap_w = heatmaps.shape[1].intValue
+//        print("heatmap_w: ", heatmap_w)
         let heatmap_h = heatmaps.shape[2].intValue
+//        print("heatmap_h: ", heatmap_h)
         
         var n_kpoints = (0..<total_keypoint_number).map { _ -> PredictedPoint? in
             return nil
@@ -42,6 +44,7 @@ class HeatmapPostProcessor {
                     if n_kpoints[k] == nil ||
                         (n_kpoints[k] != nil && n_kpoints[k]!.maxConfidence < confidence) {
                         n_kpoints[k] = PredictedPoint(maxPoint: CGPoint(x: CGFloat(j), y: CGFloat(i)), maxConfidence: confidence)
+                        
                     }
                 }
             }
@@ -49,6 +52,7 @@ class HeatmapPostProcessor {
         
         //print(maxvalue, minvalue)
         
+        // turns actual pixel coordinates into % values
         // transpose to (1.0, 1.0)
         n_kpoints = n_kpoints.map { kpoint -> PredictedPoint? in
             if let kp = kpoint {

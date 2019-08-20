@@ -10,7 +10,7 @@ import UIKit
 
 class DrawingJointView: UIView {
     
-    static let threshold = 0.23
+    static let threshold = 0.7
     
     // the count of array may be <#14#> when use PoseEstimationForMobile's model
     private var keypointLabelBGViews: [UIView] = []
@@ -71,6 +71,10 @@ class DrawingJointView: UIView {
                         let bp2 = self.bodyPoints[pIndex2], bp2.maxConfidence > DrawingJointView.threshold {
                         let p1 = bp1.maxPoint
                         let p2 = bp2.maxPoint
+//                        print("p1 x:", p1.x, " y:", p1.y)
+//                        print("p2 x:", p2.x, " y:", p2.y)
+//                        print(size.width, size.height)
+
                         let point1 = CGPoint(x: p1.x * size.width, y: p1.y*size.height)
                         let point2 = CGPoint(x: p2.x * size.width, y: p2.y*size.height)
                         drawLine(ctx: ctx, from: point1, to: point2, color: color)
@@ -104,8 +108,15 @@ class DrawingJointView: UIView {
         
         for (index, kp) in n_kpoints.enumerated() {
             if let n_kp = kp {
+//                print("n_kp.maxPoint.x: ", n_kp.maxPoint.x)
+//                print("n_kp.maxPoint.y: ", n_kp.maxPoint.y)
+
                 let x = n_kp.maxPoint.x * imageFrame.width
                 let y = n_kp.maxPoint.y * imageFrame.height
+                
+//                print("x", x)
+//                print("y",y)
+                
                 keypointLabelBGViews[index].center = CGPoint(x: x, y: y)
                 let cRate = (n_kp.maxConfidence - minC)/(maxC - minC)
                 keypointLabelBGViews[index].alpha = (maxAlpha - minAlpha) * CGFloat(cRate) + minAlpha
