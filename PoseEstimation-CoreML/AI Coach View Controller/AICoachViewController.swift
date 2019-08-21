@@ -182,33 +182,24 @@ extension AICoachViewController {
         DispatchQueue.main.sync { [weak self] in
             guard let self = self else { return }
             
+            // Calculate start position match percentage
             if (matchingRatio > 0.994) {
                 started = true
-//                print("matchingRatio: \(matchingRatio)")
             }
             
             if (!started) {
+                // Display start position sillouette
                 self.jointView.bodyPoints = predictedStartPoints
-//                print("waiting to match..")
             } else {
-                // draw line
+                // draw joints
                 self.jointView.bodyPoints = predictedPoints
+
+                // calculate velocity in a buffer
                 self.squatFormView.startbodyPoints = predictedPoints
-//                print("MATCHED")
+                
+                // Check squat form
+                self.squatFormView.bodyPoints = predictedPoints
             }
-
-            // come up with hardcoded sillouete coordinates
-            // create a sillouete UIView
-            
-//            if !started then compare sillouete and update start condition
-//            if started, then check squat form
-
-
-//            // Check squat form
-//            self.squatFormView.bodyPoints = predictedPoints
-
-            // if at the bottom, then save the frame from before as bottom frame.
-            // in post processing overlay heatmap on the butt and knee joints
         }
         /* =================================================================== */
     }
