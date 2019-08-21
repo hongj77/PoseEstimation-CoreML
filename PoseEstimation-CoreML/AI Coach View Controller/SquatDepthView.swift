@@ -30,7 +30,7 @@ class SquatDepthView: UIView {
     public var startbodyPoints: [PredictedPoint?] = [] {
         didSet {
             self.setNeedsDisplay()
-            self.checkVelocity(with: bodyPoints)
+            self.checkVelocity(with: startbodyPoints)
         }
     }
     
@@ -67,11 +67,7 @@ class SquatDepthView: UIView {
             }
         }
     }
-    /*
-    static let pointLabels = [
 
-    ]
- */
     private func checkVelocity(with n_kpoints: [PredictedPoint?]) {
         // Assumes the set starts as soon as the recording starts
         // and ends after 100 frames have been processed
@@ -83,7 +79,10 @@ class SquatDepthView: UIView {
             var roi : [[PredictedPoint?]] = []
             while (pointsHistory.count > 0) {
                 if let frame = pointsHistory.dequeue() {
-                    roi.append(frame)
+                    print("Frame count: \(frame.count)")
+                    if frame.count > PointLabels.neck.rawValue {
+                        roi.append(frame)
+                    }
                 }
             }
             // Find bottom of squat
@@ -133,8 +132,9 @@ class SquatDepthView: UIView {
             let velocity: CGFloat = metersDistance / time
             print("Upwards squat velocity: \(velocity)")
         }
+        print("Original frame count: \(n_kpoints.count)")
+    
         pointsHistory.enqueue(n_kpoints)
-        print("Hello, world!")
     }
 
     override func draw(_ rect: CGRect) {
