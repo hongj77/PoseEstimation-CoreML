@@ -34,11 +34,34 @@ class DrawingJointView: UIView {
             view.layer.cornerRadius = 3
             view.layer.borderColor = UIColor.black.cgColor
             view.layer.borderWidth = 1.4
+            
+            // Joint labels
             let label = UILabel(frame: CGRect(x: pointSize.width * 1.4, y: 0, width: 100, height: pointSize.height))
             label.text = PoseEstimationForMobileConstant.pointLabels[index%PoseEstimationForMobileConstant.colors.count]
             label.textColor = color
             label.font = UIFont.preferredFont(forTextStyle: .caption2)
             view.addSubview(label)
+            
+            // Draw x y coordinates for the points that we have
+            if (bodyPoints.count > 0 && index < bodyPoints.count && bodyPoints[index] != nil) {
+                let x_pos = String(format: "%.3f", Double(bodyPoints[index]!.maxPoint.x))
+                let y_pos = String(format: "%.3f", Double(bodyPoints[index]!.maxPoint.y))
+                let position_label = UILabel(frame: CGRect(x: pointSize.width, y: 0, width: 200, height: pointSize.height + 30))
+                position_label.text = "[\(x_pos), \(y_pos)]"
+                position_label.textColor = color
+                position_label.font = UIFont.preferredFont(forTextStyle: .caption2)
+                view.addSubview(position_label)
+                
+                let confidence = String(format: "%.3f", Double(bodyPoints[index]!.maxConfidence))
+                let confidence_label = UILabel(frame: CGRect(x: pointSize.width, y: 0, width: 200, height: pointSize.height + 60))
+                confidence_label.text = "\(confidence)"
+                confidence_label.textColor = color
+                confidence_label.font = UIFont.preferredFont(forTextStyle: .caption2)
+                view.addSubview(confidence_label)
+                
+//                print("\(label.text) | [\(x_pos), \(y_pos)] | \(confidence)")
+            }
+        
             self.addSubview(view)
             return view
         }

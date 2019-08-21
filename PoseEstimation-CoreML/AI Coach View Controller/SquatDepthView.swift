@@ -23,6 +23,13 @@ class SquatDepthView: UIView {
         didSet {
             self.setNeedsDisplay()
             self.checkSquatDepth(with: bodyPoints)
+        }
+    }
+    
+    // There's 14 of these returned from the model.
+    public var startbodyPoints: [PredictedPoint?] = [] {
+        didSet {
+            self.setNeedsDisplay()
             self.checkVelocity(with: bodyPoints)
         }
     }
@@ -134,10 +141,8 @@ class SquatDepthView: UIView {
         if let ctx = UIGraphicsGetCurrentContext() {
             if belowKnees {
                 self.backgroundColor = UIColor(named: "Green")!
-                print("below knees = true")
             } else {
                 self.backgroundColor = UIColor(named: "Red")!
-                print("below knees = false")
             }
         }
     }

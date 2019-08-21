@@ -18,6 +18,10 @@ class AICoachViewController: UIViewController {
 
     var capturedPointsArray: [[CapturedPoint?]?] = []
     
+    var startPositionPointsArray: [CapturedPoint?] = []
+    
+    var started : Bool = false
+    
     // MARK: - AV Property
     var videoCapture: VideoCapture!
     
@@ -41,6 +45,45 @@ class AICoachViewController: UIViewController {
 
         // setup camera
         setUpCamera()
+        
+        // controller states
+        setUpControllerStates()
+    }
+    
+    func setUpControllerStates() {
+        // Initialize startPoisitionPointsArray. Order matters here.
+        // Top
+        let top_point = CGPoint(x:0.495, y:0.089)
+        startPositionPointsArray.append(CapturedPoint(predictedPoint: PredictedPoint(maxPoint: top_point, maxConfidence: 1)))
+        // Neck
+        let neck_point = CGPoint(x:0.495, y:0.214)
+        startPositionPointsArray.append(CapturedPoint(predictedPoint: PredictedPoint(maxPoint: neck_point, maxConfidence: 1)))
+        // R Shoulder
+        let r_shoulder_point = CGPoint(x:0.578, y:0.255)
+        startPositionPointsArray.append(CapturedPoint(predictedPoint: PredictedPoint(maxPoint: r_shoulder_point, maxConfidence: 1)))
+        // R Elbow
+        startPositionPointsArray.append(nil)
+        // R Wrist
+        startPositionPointsArray.append(nil)
+        // L Shoulder
+        let l_shoulder_point = CGPoint(x:0.370, y:0.255)
+        startPositionPointsArray.append(CapturedPoint(predictedPoint: PredictedPoint(maxPoint: l_shoulder_point, maxConfidence: 1)))
+        // L Elbow
+        startPositionPointsArray.append(nil)
+        // L Wrist
+        startPositionPointsArray.append(nil)
+        // R Hip
+        startPositionPointsArray.append(nil)
+        // R Knee
+        startPositionPointsArray.append(nil)
+        // R Ankle
+        startPositionPointsArray.append(nil)
+        // L Hip
+        startPositionPointsArray.append(nil)
+        // L Knee
+        startPositionPointsArray.append(nil)
+        // L Ankle
+        startPositionPointsArray.append(nil)
     }
     
     // MARK: - Setup Core ML
@@ -124,14 +167,45 @@ extension AICoachViewController {
         predictedPoints = mvfilters.map { $0.averagedValue() }
         
         /* =================================================================== */
+        
+        let matchingRatio = startPositionPointsArray.matchVector(with: predictedPoints)
+        let predictedStartPoints = startPositionPointsArray.map ({ (capturedPoint) -> PredictedPoint? in
+            if (capturedPoint != nil) {
+                return PredictedPoint(capturedPoint: capturedPoint!)
+            } else {
+                return nil
+            }
+        })
+        
+        /* =================================================================== */
         /* ======================= display the results ======================= */
         DispatchQueue.main.sync { [weak self] in
             guard let self = self else { return }
-            // draw line
-            self.jointView.bodyPoints = predictedPoints
             
-            // Check squat form
-            self.squatFormView.bodyPoints = predictedPoints
+            if (matchingRatio > 0.994) {
+                started = true
+//                print("matchingRatio: \(matchingRatio)")
+            }
+            
+            if (!started) {
+                self.jointView.bodyPoints = predictedStartPoints
+//                print("waiting to match..")
+            } else {
+                // draw line
+                self.jointView.bodyPoints = predictedPoints
+                self.squatFormView.startbodyPoints = predictedPoints
+//                print("MATCHED")
+            }
+
+            // come up with hardcoded sillouete coordinates
+            // create a sillouete UIView
+            
+//            if !started then compare sillouete and update start condition
+//            if started, then check squat form
+
+
+//            // Check squat form
+//            self.squatFormView.bodyPoints = predictedPoints
 
             // if at the bottom, then save the frame from before as bottom frame.
             // in post processing overlay heatmap on the butt and knee joints

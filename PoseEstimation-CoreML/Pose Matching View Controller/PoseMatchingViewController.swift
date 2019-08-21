@@ -193,8 +193,6 @@ extension PoseMatchingViewController {
             .map { $0?.matchVector(with: predictedPoints) }
             .compactMap { $0 }
         
-        
-        
         /* =================================================================== */
         /* ======================= display the results ======================= */
         DispatchQueue.main.sync { [weak self] in
