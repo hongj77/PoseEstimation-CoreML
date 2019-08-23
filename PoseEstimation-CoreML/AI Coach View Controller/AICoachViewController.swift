@@ -9,8 +9,9 @@
 import UIKit
 import CoreMedia
 import Vision
+import AVFoundation
 
-class AICoachViewController: UIViewController {
+class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     // MARK: - UI Property
     @IBOutlet weak var videoPreview: UIView!
     @IBOutlet weak var jointView: DrawingJointView!
@@ -99,23 +100,65 @@ class AICoachViewController: UIViewController {
     
     // MARK: - SetUp Video
     func setUpCamera() {
-        videoCapture = VideoCapture()
-        videoCapture.delegate = self
-        videoCapture.fps = 30
-        videoCapture.setUp(sessionPreset: .vga640x480, cameraPosition: .front) { success in
-            
-            if success {
-                // add preview view on the layer
-                if let previewLayer = self.videoCapture.previewLayer {
-                    self.videoPreview.layer.addSublayer(previewLayer)
-                    self.resizePreviewLayer()
-                }
+        let captureMode = false
+        
+        if captureMode {
+            videoCapture = VideoCapture()
+            videoCapture.delegate = self
+            videoCapture.fps = 30
+            videoCapture.setUp(sessionPreset: .vga640x480, cameraPosition: .front) { success in
                 
-                // start video preview when setup is done
-                self.videoCapture.start()
+                if success {
+                    // add preview view on the layer
+                    if let previewLayer = self.videoCapture.previewLayer {
+                        self.videoPreview.layer.addSublayer(previewLayer)
+                        self.resizePreviewLayer()
+                    }
+                    
+                    // start video preview when setup is done
+                    self.videoCapture.start()
+                }
             }
+        } else {
+            let picker = UIImagePickerController()
+            picker.delegate = self
+            picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .savedPhotosAlbum)!
+            picker.mediaTypes = ["public.movie"]
+            picker.allowsEditing = false
+            present(picker, animated: true, completion: nil)
         }
     }
+    
+    func imagePickerController(_ picker: UIImagePickerController,
+                                        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        let fileURL: URL = info[UIImagePickerController.InfoKey.mediaURL] as! URL
+        let asset = AVAsset(url: fileURL)
+        let reader = try! AVAssetReader(asset: asset)
+        let videoTrack = asset.tracks(withMediaType: AVMediaType.video)[0]
+        
+        // read video frames as BGRA
+        let trackReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings:[String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)])
+        
+        reader.add(trackReaderOutput)
+        reader.startReading()
+        var frame = 0
+        while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
+            print("sample at time \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer))")
+            if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+                print("Reading frame number \(frame)")
+                frame += 1
+                // process each CVPixelBufferRef here
+                // see CVPixelBufferGetWidth, CVPixelBufferLockBaseAddress, CVPixelBufferGetBaseAddress, etc
+            }
+        }
+ 
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        print("boop")
+    }
+
+
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
@@ -123,7 +166,9 @@ class AICoachViewController: UIViewController {
     }
     
     func resizePreviewLayer() {
-        videoCapture.previewLayer?.frame = videoPreview.bounds
+        if videoCapture != nil && videoPreview != nil {
+            videoCapture.previewLayer?.frame = videoPreview.bounds
+        }
     }
 }
 
