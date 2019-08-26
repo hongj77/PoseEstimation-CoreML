@@ -16,6 +16,7 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     @IBOutlet weak var videoPreview: UIView!
     @IBOutlet weak var jointView: DrawingJointView!
     @IBOutlet weak var squatFormView: SquatDepthView!
+    @IBOutlet weak var videoPlaybackView: UIView!
 
     var capturedPointsArray: [[CapturedPoint?]?] = []
     
@@ -25,6 +26,21 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     // MARK: - AV Property
     var videoCapture: VideoCapture!
+    var videoPlayback: VideoPlayback! /*
+ 
+ 
+ {
+     
+        didSet {
+            while let pixelBuffer = videoPlayback.advanceFrame() {
+                predictUsingVision(pixelBuffer: pixelBuffer)
+                // TODO modify the frame before displaying...
+                videoPlayback.displayFrame(view: videoPreview)
+            }
+        }
+ 
+    }
+ */
     
     // MARK: - ML Properties
     // Core ML model
@@ -132,26 +148,20 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     func imagePickerController(_ picker: UIImagePickerController,
                                         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let fileURL: URL = info[UIImagePickerController.InfoKey.mediaURL] as! URL
-        let asset = AVAsset(url: fileURL)
-        let reader = try! AVAssetReader(asset: asset)
-        let videoTrack = asset.tracks(withMediaType: AVMediaType.video)[0]
-        
-        // read video frames as BGRA
-        let trackReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings:[String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)])
-        
-        reader.add(trackReaderOutput)
-        reader.startReading()
-        var frame = 0
-        while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
-            print("sample at time \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer))")
-            if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-                print("Reading frame number \(frame)")
-                frame += 1
-                // process each CVPixelBufferRef here
-                // see CVPixelBufferGetWidth, CVPixelBufferLockBaseAddress, CVPixelBufferGetBaseAddress, etc
-            }
+        videoPlayback = VideoPlayback(fileURL: fileURL)
+        if let previewLayer = self.videoPlayback.previewLayer {
+            self.videoPreview.layer.addSublayer(previewLayer)
+            self.videoPlayback.previewLayer.frame = self.videoPreview.bounds
+
         }
- 
+        dismiss(animated: false, completion: {
+            while let pixelBuffer = self.videoPlayback.advanceFrame() {
+                
+                self.predictUsingVision(pixelBuffer: pixelBuffer)
+                // TODO modify the frame before displaying...
+                self.videoPlayback.displayFrame()
+            }
+        })
     }
     
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
@@ -221,7 +231,8 @@ extension AICoachViewController {
                 return nil
             }
         })
-        
+        // TODO daryl to draw result onto the actual image? or layer views on top of it?
+        /*
         /* =================================================================== */
         /* ======================= display the results ======================= */
         DispatchQueue.main.sync { [weak self] in
@@ -247,5 +258,6 @@ extension AICoachViewController {
             }
         }
         /* =================================================================== */
+        */
     }
 }
