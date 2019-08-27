@@ -19,7 +19,7 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     @IBOutlet weak var bufferImageView: UIImageView!
     
     private var workQueue = DispatchQueue(label: "com.apple.VisionTracker", qos: .userInitiated)
-    
+
     var capturedPointsArray: [[CapturedPoint?]?] = []
     
     var startPositionPointsArray: [CapturedPoint?] = []
@@ -30,6 +30,7 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     var videoCapture: VideoCapture!
     var videoTrack : AVAssetTrack?
     var reader : AVAssetReader?
+
     
     // MARK: - ML Properties
     // Core ML model
@@ -256,7 +257,8 @@ extension AICoachViewController {
                 return nil
             }
         })
-        
+        // TODO daryl to draw result onto the actual image? or layer views on top of it?
+        /*
         /* =================================================================== */
         /* ======================= display the results ======================= */
         DispatchQueue.main.sync { [weak self] in
@@ -282,5 +284,6 @@ extension AICoachViewController {
             }
         }
         /* =================================================================== */
+        */
     }
 }
