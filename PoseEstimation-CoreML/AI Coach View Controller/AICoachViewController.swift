@@ -216,7 +216,28 @@ extension AICoachViewController {
     func predictUsingVision(pixelBuffer: CVPixelBuffer) {
         guard let request = request else { fatalError() }
         // vision framework configures the input size of image following our model's input configuration automatically
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer)
+        let affineTransform = self.videoTrack?.preferredTransform.inverted()
+        
+        let angleInDegrees = atan2(affineTransform!.b, affineTransform!.a) * CGFloat(180) / CGFloat.pi
+        var orientation: UInt32 = 1
+        switch angleInDegrees {
+        case 0:
+            orientation = 1 // Recording button is on the right
+        case 180:
+            orientation = 3 // abs(180) degree rotation recording button is on the right
+        case -180:
+            orientation = 3 // abs(180) degree rotation recording button is on the right
+        case 90:
+            orientation = 8 // 90 degree CW rotation recording button is on the top
+        case -90:
+            orientation = 6 // 90 degree CCW rotation recording button is on the bottom
+        default:
+            orientation = 1
+        }
+        
+        let orientationProperty = CGImagePropertyOrientation(rawValue: orientation)
+        request.imageCropAndScaleOption = .scaleFit
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientationProperty!)
         try? handler.perform([request])
     }
 
