@@ -167,17 +167,23 @@ extension AICoachViewController: UIImagePickerControllerDelegate, UINavigationCo
             var frame = 0
             while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
                 if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+                    // This image buffer needs to be transformed, scaled, and cropped into a square.
+                    
                     DispatchQueue.main.async {
-                        let ciimage : CIImage = CIImage(cvPixelBuffer: imageBuffer)
-                        // can call predict using vision here
+                        let ciimage : CIImage = CIImage(cvPixelBuffer: imageBuffer).transformed(by: self.videoTrack!.preferredTransform.inverted())
                         
+                        // Run inference and draw joints.
+                        self.predictUsingVision(pixelBuffer: imageBuffer)
+                        
+                        // Display buffer frame by frame into image view.
                         let image : UIImage = self.convert(cmage: ciimage)
                         self.bufferImageView.image = image;
                         self.bufferImageView.setNeedsDisplay();
                     }
+                    
                     frame += 1
                 }
-                usleep(useconds_t(30*1000))
+                usleep(useconds_t(10*1000))
             }
         }
     }
@@ -215,6 +221,7 @@ extension AICoachViewController {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer)
         try? handler.perform([request])
     }
+
     
     // MARK: - Postprocessing
     func visionRequestDidComplete(request: VNRequest, error: Error?) {
@@ -246,6 +253,10 @@ extension AICoachViewController {
                 return nil
             }
         })
+        
+        // draw joints
+        self.jointView.bodyPoints = predictedPoints
+
         // TODO daryl to draw result onto the actual image? or layer views on top of it?
         /*
         /* =================================================================== */
