@@ -168,13 +168,11 @@ extension AICoachViewController: UIImagePickerControllerDelegate, UINavigationCo
             while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
                 if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
                     // This image buffer needs to be transformed, scaled, and cropped into a square.
-                    
+                    // Run inference and draw joints.
+                    self.predictUsingVision(pixelBuffer: imageBuffer)
                     DispatchQueue.main.async {
                         let ciimage : CIImage = CIImage(cvPixelBuffer: imageBuffer).transformed(by: self.videoTrack!.preferredTransform.inverted())
-                        
-                        // Run inference and draw joints.
-                        self.predictUsingVision(pixelBuffer: imageBuffer)
-                        
+
                         // Display buffer frame by frame into image view.
                         let image : UIImage = self.convert(cmage: ciimage)
                         self.bufferImageView.image = image;
@@ -255,21 +253,19 @@ extension AICoachViewController {
         })
         
         // draw joints
-        self.jointView.bodyPoints = predictedPoints
 
         // TODO daryl to draw result onto the actual image? or layer views on top of it?
-        /*
         /* =================================================================== */
         /* ======================= display the results ======================= */
-        DispatchQueue.main.sync { [weak self] in
-            guard let self = self else { return }
+        DispatchQueue.main.sync {
             
             // Calculate start position match percentage
             if (matchingRatio > 0.994) {
-                started = true
+                self.started = true
             }
+            self.started = true
             
-            if (!started) {
+            if (!self.started) {
                 // Display start position sillouette
                 self.jointView.bodyPoints = predictedStartPoints
             } else {
@@ -284,6 +280,5 @@ extension AICoachViewController {
             }
         }
         /* =================================================================== */
-        */
     }
 }
