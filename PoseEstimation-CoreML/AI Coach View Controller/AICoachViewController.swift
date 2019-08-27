@@ -11,14 +11,14 @@ import CoreMedia
 import Vision
 import AVFoundation
 
-class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class AICoachViewController: UIViewController {
     // MARK: - UI Property
     @IBOutlet weak var videoPreview: UIView!
     @IBOutlet weak var jointView: DrawingJointView!
     @IBOutlet weak var squatFormView: SquatDepthView!
     @IBOutlet weak var bufferImageView: UIImageView!
     
-    private var workQueue = DispatchQueue(label: "com.apple.VisionTracker", qos: .userInitiated)
+    private var workQueue = DispatchQueue(label: "com.apple.VelocityTraining", qos: .userInitiated)
 
     var capturedPointsArray: [[CapturedPoint?]?] = []
     
@@ -134,9 +134,23 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
             present(picker, animated: true, completion: nil)
         }
     }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        resizePreviewLayer()
+    }
     
+    func resizePreviewLayer() {
+        if videoCapture != nil && videoPreview != nil {
+            videoCapture.previewLayer?.frame = videoPreview.bounds
+        }
+    }
+}
+
+// MARK: - UIImagePickerController
+extension AICoachViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController,
-                                        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+                               didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let fileURL: URL = info[UIImagePickerController.InfoKey.mediaURL] as! URL
         let asset = AVAsset(url: fileURL)
         reader = try! AVAssetReader(asset: asset)
@@ -145,41 +159,27 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     }
     
     func viewTrackCallback() {
-        
         workQueue.async {
-        
-        // read video frames as BGRA
-        let trackReaderOutput = AVAssetReaderTrackOutput(track: self.videoTrack!, outputSettings:[String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)])
-        
-        self.reader?.add(trackReaderOutput)
-        self.reader?.startReading()
-        var frame = 0
-
-            
-        while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
-            print("sample at time \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer))")
-
-            if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-
-                DispatchQueue.main.async {
-                    let ciimage : CIImage = CIImage(cvPixelBuffer: imageBuffer)
-                    let image : UIImage = self.convert(cmage: ciimage)
-                    self.bufferImageView.image = image;
-                    self.bufferImageView.setNeedsDisplay();
-                    print("lol")
+            // Read video frames as BGRA
+            let trackReaderOutput = AVAssetReaderTrackOutput(track: self.videoTrack!, outputSettings:[String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)])
+            self.reader?.add(trackReaderOutput)
+            self.reader?.startReading()
+            var frame = 0
+            while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
+                if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+                    DispatchQueue.main.async {
+                        let ciimage : CIImage = CIImage(cvPixelBuffer: imageBuffer)
+                        // can call predict using vision here
+                        
+                        let image : UIImage = self.convert(cmage: ciimage)
+                        self.bufferImageView.image = image;
+                        self.bufferImageView.setNeedsDisplay();
+                    }
+                    frame += 1
                 }
-                
-                print("Reading frame number \(frame)")
-                frame += 1
-                // process each CVPixelBufferRef here
-                // see CVPixelBufferGetWidth, CVPixelBufferLockBaseAddress, CVPixelBufferGetBaseAddress, etc
+                usleep(useconds_t(30*1000))
             }
-            
-            usleep(useconds_t(30))
         }
-            
-        }
-        
     }
     
     // Convert CIImage to CGImage
@@ -194,17 +194,6 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         print("boop")
         dismiss(animated: true, completion: nil)
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        resizePreviewLayer()
-    }
-    
-    func resizePreviewLayer() {
-        if videoCapture != nil && videoPreview != nil {
-            videoCapture.previewLayer?.frame = videoPreview.bounds
-        }
     }
 }
 
