@@ -84,11 +84,16 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" name="Red"/>
                             </view>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OZa-OA-Bil">
+                                <rect key="frame" x="0.0" y="64" width="375" height="434"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <viewLayoutGuide key="safeArea" id="5u5-hA-VKa"/>
                     </view>
                     <connections>
+                        <outlet property="bufferImageView" destination="OZa-OA-Bil" id="y2M-rS-RDx"/>
                         <outlet property="jointView" destination="zeG-3U-rK5" id="dcP-7A-69x"/>
                         <outlet property="squatFormView" destination="IOT-Kk-cUN" id="ijX-yd-5x5"/>
                         <outlet property="videoPreview" destination="0c6-Ga-uaJ" id="kdF-qn-3xw"/>

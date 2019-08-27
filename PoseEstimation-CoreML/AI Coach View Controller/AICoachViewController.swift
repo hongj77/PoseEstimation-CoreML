@@ -16,7 +16,10 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     @IBOutlet weak var videoPreview: UIView!
     @IBOutlet weak var jointView: DrawingJointView!
     @IBOutlet weak var squatFormView: SquatDepthView!
-
+    @IBOutlet weak var bufferImageView: UIImageView!
+    
+    private var workQueue = DispatchQueue(label: "com.apple.VisionTracker", qos: .userInitiated)
+    
     var capturedPointsArray: [[CapturedPoint?]?] = []
     
     var startPositionPointsArray: [CapturedPoint?] = []
@@ -25,6 +28,8 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     // MARK: - AV Property
     var videoCapture: VideoCapture!
+    var videoTrack : AVAssetTrack?
+    var reader : AVAssetReader?
     
     // MARK: - ML Properties
     // Core ML model
@@ -133,33 +138,63 @@ class AICoachViewController: UIViewController, UIImagePickerControllerDelegate, 
                                         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let fileURL: URL = info[UIImagePickerController.InfoKey.mediaURL] as! URL
         let asset = AVAsset(url: fileURL)
-        let reader = try! AVAssetReader(asset: asset)
-        let videoTrack = asset.tracks(withMediaType: AVMediaType.video)[0]
+        reader = try! AVAssetReader(asset: asset)
+        videoTrack = asset.tracks(withMediaType: AVMediaType.video)[0]
+        dismiss(animated: true, completion: { self.viewTrackCallback()})
+    }
+    
+    func viewTrackCallback() {
+        
+        workQueue.async {
         
         // read video frames as BGRA
-        let trackReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings:[String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)])
+        let trackReaderOutput = AVAssetReaderTrackOutput(track: self.videoTrack!, outputSettings:[String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)])
         
-        reader.add(trackReaderOutput)
-        reader.startReading()
+        self.reader?.add(trackReaderOutput)
+        self.reader?.startReading()
         var frame = 0
+
+            
         while let sampleBuffer = trackReaderOutput.copyNextSampleBuffer() {
             print("sample at time \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer))")
+
             if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+
+                DispatchQueue.main.async {
+                    let ciimage : CIImage = CIImage(cvPixelBuffer: imageBuffer)
+                    let image : UIImage = self.convert(cmage: ciimage)
+                    self.bufferImageView.image = image;
+                    self.bufferImageView.setNeedsDisplay();
+                    print("lol")
+                }
+                
                 print("Reading frame number \(frame)")
                 frame += 1
                 // process each CVPixelBufferRef here
                 // see CVPixelBufferGetWidth, CVPixelBufferLockBaseAddress, CVPixelBufferGetBaseAddress, etc
             }
+            
+            usleep(useconds_t(30))
         }
- 
+            
+        }
+        
+    }
+    
+    // Convert CIImage to CGImage
+    func convert(cmage:CIImage) -> UIImage
+    {
+        let context:CIContext = CIContext.init(options: nil)
+        let cgImage:CGImage = context.createCGImage(cmage, from: cmage.extent)!
+        let image:UIImage = UIImage.init(cgImage: cgImage)
+        return image
     }
     
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         print("boop")
+        dismiss(animated: true, completion: nil)
     }
 
-
-    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         resizePreviewLayer()
